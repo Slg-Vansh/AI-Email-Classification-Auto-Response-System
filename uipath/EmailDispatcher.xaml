@@ -1,0 +1,161 @@
+<!-- 
+Email Dispatcher Workflow
+UiPath Studio Template
+
+Purpose: Send reply emails and log results to Orchestrator
+Workflow: Compose message → Send via SMTP → Log to queue/database
+-->
+
+<Activity mc:Ignorable="sap sap2010" x:Class="EmailDispatcher"
+    xmlns="http://schemas.microsoft.com/netfx/2009/xaml/activities"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:sap="http://schemas.microsoft.com/netfx/2009/xaml/activities/presentation"
+    xmlns:sap2010="http://schemas.microsoft.com/netfx/2010/xaml/activities/presentation"
+    xmlns:scg="clr-namespace:System.Collections.Generic;assembly=System.ComponentModel"
+    xmlns:sch="clr-namespace:System.Collections.Hashtable;assembly=System.ComponentModel"
+    xmlns:sco="clr-namespace:System.Collections.ObjectModel;assembly=System.ObjectModel"
+    xmlns:ui="http://schemas.uipath.com/studio/activities/ui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <x:Members>
+    <x:Property Name="in_RecipientEmail" Type="InArgument(x:String)" />
+    <x:Property Name="in_EmailSubject" Type="InArgument(x:String)" />
+    <x:Property Name="in_ResponseText" Type="InArgument(x:String)" />
+    <x:Property Name="in_SMTPHost" Type="InArgument(x:String)" />
+    <x:Property Name="in_SMTPPort" Type="InArgument(x:Int32)" />
+    <x:Property Name="in_SenderEmail" Type="InArgument(x:String)" />
+    <x:Property Name="in_SenderPassword" Type="InArgument(x:String)" />
+    <x:Property Name="in_Classification" Type="InArgument(x:String)" />
+    <x:Property Name="out_SendSuccess" Type="OutArgument(x:Boolean)" />
+  </x:Members>
+
+  <sap2010:ExpressionActivityEditor.ExpressionActivityEditor>
+    <scg:Dictionary x:TypeArguments="x:String, x:Object">
+      <x:Boolean x:Key="IsOpen">False</x:Boolean>
+    </scg:Dictionary>
+  </sap2010:ExpressionActivityEditor.ExpressionActivityEditor>
+
+  <Sequence DisplayName="EmailDispatcher" sap2010:ExpressionActivityEditor.ExpressionActivityEditor="{StaticResource ExpressionActivityEditor}">
+    
+    <!-- Activity 1: Initialize Dispatcher -->
+    <ui:LogMessage DisplayName="Log - Dispatcher Started" Level="Info" Message="Starting Email Dispatcher" />
+    
+    <!-- Activity 2: Validate Inputs -->
+    <Sequence DisplayName="Validate Inputs">
+      <ui:LogMessage DisplayName="Log - Validate" Level="Info" Message="Validating recipient email and response text" />
+      <!-- 
+        Add If activity to check:
+        - in_RecipientEmail is not empty
+        - in_ResponseText is not empty
+        - in_SMTPHost is not empty
+      -->
+    </Sequence>
+    
+    <!-- Activity 3: Format Reply Subject -->
+    <Sequence DisplayName="Format Subject Line">
+      <ui:LogMessage DisplayName="Log - Format Subject" Level="Info" Message="Formatting reply subject line" />
+      <!-- 
+        Assign Activity:
+        replySubject = "Re: " + in_EmailSubject
+      -->
+    </Sequence>
+    
+    <!-- Activity 4: Build Email Body -->
+    <Sequence DisplayName="Build Email Body">
+      <ui:LogMessage DisplayName="Log - Build Body" Level="Info" Message="Building formatted email body" />
+      <!-- 
+        Assign Activity:
+        Build professional email body including:
+        - Generated response text
+        - Timestamp
+        - Footer with company info
+        
+        Example:
+        emailBody = in_ResponseText + Environment.NewLine + Environment.NewLine + 
+                   "---" + Environment.NewLine +
+                   "Sent: " + Now.ToString("yyyy-MM-dd HH:mm:ss") + Environment.NewLine +
+                   "Classification: " + in_Classification
+      -->
+    </Sequence>
+    
+    <!-- Activity 5: Send Email via SMTP -->
+    <Sequence DisplayName="Send Email">
+      <ui:LogMessage DisplayName="Log - Sending Email" Level="Info" Message="[&quot;Sending email to: &quot; + in_RecipientEmail]" />
+      <!-- 
+        Send SMTP Mail Message Activity:
+        - To: in_RecipientEmail
+        - From: in_SenderEmail
+        - Subject: replySubject
+        - Body: emailBody
+        - SMTPHost: in_SMTPHost
+        - SMTPPort: in_SMTPPort
+        - Username: in_SenderEmail
+        - Password: in_SenderPassword
+        - IsBodyHtml: false
+        - EnableSSL: true
+        
+        Handle exceptions:
+        - Log error if send fails
+        - Set out_SendSuccess = false
+      -->
+    </Sequence>
+    
+    <!-- Activity 6: Log to Database/Queue -->
+    <Sequence DisplayName="Log to Tracker">
+      <ui:LogMessage DisplayName="Log - Logging Result" Level="Info" Message="Logging email dispatch result" />
+      <!-- 
+        Add to Queue / Write to Database:
+        Queue Name: "EmailProcessingTracker"
+        
+        Log Entry:
+        {
+          "timestamp": Now,
+          "recipient": in_RecipientEmail,
+          "original_subject": in_EmailSubject,
+          "classification": in_Classification,
+          "sent": true/false,
+          "response_length": in_ResponseText.Length,
+          "status": "completed"
+        }
+        
+        Alternative: Write to SQLite/Excel:
+        - Insert row into tracker table
+        - Fields: timestamp, recipient, subject, classification, sent, response_length
+      -->
+    </Sequence>
+    
+    <!-- Activity 7: Success Logging -->
+    <Sequence DisplayName="Log Success">
+      <ui:LogMessage DisplayName="Log - Email Sent" Level="Info" Message="[&quot;Email successfully sent to: &quot; + in_RecipientEmail]" />
+      <!-- 
+        Assign Activity:
+        out_SendSuccess = true
+      -->
+    </Sequence>
+    
+    <!-- Activity 8: Error Handling (Optional Catch Block) -->
+    <TryCatch DisplayName="Error Handler">
+      <TryCatch.Try>
+        <!-- Main send logic would go here -->
+      </TryCatch.Try>
+      <TryCatch.Catches>
+        <Catch x:TypeArguments="s:Exception" DisplayName="Catch Exception" 
+               sap2010:Annotation.AnnotationText="Handle email send failures"
+               xmlns:s="clr-namespace:System;assembly=mscorlib">
+          <Sequence DisplayName="Handle Error">
+            <ui:LogMessage DisplayName="Log - Error" Level="Error" Message="[&quot;Failed to send email: &quot; + exception.Message]" />
+            <!-- 
+              Assign Activity:
+              out_SendSuccess = false
+            -->
+          </Sequence>
+        </Catch>
+      </TryCatch.Catches>
+    </TryCatch>
+    
+    <!-- Activity 9: Completion -->
+    <ui:LogMessage DisplayName="Log - Dispatcher Complete" Level="Info" Message="Email Dispatcher workflow complete" />
+    
+  </Sequence>
+
+</Activity>

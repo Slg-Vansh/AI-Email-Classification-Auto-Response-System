@@ -1,0 +1,124 @@
+<!-- 
+Email Monitor Workflow
+UiPath Studio Template
+
+Purpose: Monitor IMAP inbox for new emails and trigger processing
+Workflow: IMAP polling → Extract email content → Send to FastAPI → Log results
+-->
+
+<Activity mc:Ignorable="sap sap2010" x:Class="EmailMonitor"
+    xmlns="http://schemas.microsoft.com/netfx/2009/xaml/activities"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:sap="http://schemas.microsoft.com/netfx/2009/xaml/activities/presentation"
+    xmlns:sap2010="http://schemas.microsoft.com/netfx/2010/xaml/activities/presentation"
+    xmlns:scg="clr-namespace:System.Collections.Generic;assembly=System.ComponentModel"
+    xmlns:sch="clr-namespace:System.Collections.Hashtable;assembly=System.ComponentModel"
+    xmlns:sco="clr-namespace:System.Collections.ObjectModel;assembly=System.ObjectModel"
+    xmlns:ui="http://schemas.uipath.com/studio/activities/ui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <x:Members>
+    <x:Property Name="in_EmailAddress" Type="InArgument(x:String)" />
+    <x:Property Name="in_EmailPassword" Type="InArgument(x:String)" />
+    <x:Property Name="in_IMAPHost" Type="InArgument(x:String)" />
+    <x:Property Name="in_IMAPPort" Type="InArgument(x:Int32)" />
+    <x:Property Name="in_APIEndpoint" Type="InArgument(x:String)" />
+    <x:Property Name="out_ProcessedCount" Type="OutArgument(x:Int32)" />
+  </x:Members>
+
+  <sap2010:ExpressionActivityEditor.ExpressionActivityEditor>
+    <scg:Dictionary x:TypeArguments="x:String, x:Object">
+      <x:Boolean x:Key="IsOpen">False</x:Boolean>
+    </scg:Dictionary>
+  </sap2010:ExpressionActivityEditor.ExpressionActivityEditor>
+
+  <Sequence DisplayName="EmailMonitor" sap2010:ExpressionActivityEditor.ExpressionActivityEditor="{StaticResource ExpressionActivityEditor}">
+    
+    <!-- Activity 1: Initialize Email Connection -->
+    <ui:LogMessage DisplayName="Log - Email Monitor Started" Level="Info" Message="Starting Email Monitor for IMAP inbox" />
+    
+    <!-- Activity 2: Connect to IMAP Server -->
+    <!-- Note: In actual implementation, use appropriate email connector activity -->
+    <!-- This would retrieve new emails from inbox with unread filter -->
+    <Sequence DisplayName="Connect to IMAP">
+      <ui:LogMessage DisplayName="Log - Connecting to IMAP" Level="Info" Message="[&quot;Connecting to &quot; + in_IMAPHost + &quot;:&quot; + in_IMAPPort.ToString]" />
+    </Sequence>
+    
+    <!-- Activity 3: For Each Email - Process individually -->
+    <Sequence DisplayName="Process Emails Loop">
+      <ui:LogMessage DisplayName="Log - Processing emails" Level="Info" Message="Iterating through new emails" />
+      
+      <!-- For each email, extract: subject, body, sender -->
+      <Sequence DisplayName="Extract Email Data">
+        <ui:LogMessage DisplayName="Log - Extract" Level="Info" Message="Extracting email content: subject, body, sender" />
+        <!-- 
+          Variables needed:
+          - emailSubject (String)
+          - emailBody (String)
+          - emailSender (String)
+          - receivedDate (String)
+        -->
+      </Sequence>
+      
+      <!-- Activity 4: Call FastAPI Endpoint -->
+      <Sequence DisplayName="Send to FastAPI">
+        <ui:LogMessage DisplayName="Log - API Call" Level="Info" Message="Sending email to FastAPI for processing" />
+        <!-- 
+          HTTP Request Activity:
+          - URL: in_APIEndpoint + "/api/v1/process-email"
+          - Method: POST
+          - Body: JSON with subject, body, sender, received_date, generate_response=true
+          - Expected Response: classification result + generated response
+        -->
+      </Sequence>
+      
+      <!-- Activity 5: Parse API Response -->
+      <Sequence DisplayName="Parse Response">
+        <ui:LogMessage DisplayName="Log - Parse Response" Level="Info" Message="Parsing FastAPI response JSON" />
+        <!-- 
+          Extract from response:
+          - classification.intent
+          - classification.confidence
+          - classification.priority
+          - response.response_text (if generated)
+        -->
+      </Sequence>
+      
+    </Sequence>
+    
+    <!-- Activity 6: Generate Response Email -->
+    <Sequence DisplayName="Send Reply Email">
+      <ui:LogMessage DisplayName="Log - Sending Reply" Level="Info" Message="Composing and sending reply email" />
+      <!-- 
+        SMTP Send Activity:
+        - To: emailSender
+        - Subject: "Re: " + emailSubject
+        - Body: response.response_text from API
+        - Use SMTP host/port from configuration
+      -->
+    </Sequence>
+    
+    <!-- Activity 7: Log to Orchestrator -->
+    <Sequence DisplayName="Log to Orchestrator">
+      <ui:LogMessage DisplayName="Log - Logged to Queue" Level="Info" Message="Email processing logged to Orchestrator" />
+      <!-- 
+        Add to Queue Activity:
+        - Queue Name: "EmailProcessing"
+        - Data: 
+          {
+            "email_subject": emailSubject,
+            "email_sender": emailSender,
+            "classification": classification.intent,
+            "response_generated": true/false,
+            "timestamp": Now,
+            "status": "completed"
+          }
+      -->
+    </Sequence>
+    
+    <!-- Activity 8: Log Completion -->
+    <ui:LogMessage DisplayName="Log - Monitor Complete" Level="Info" Message="Email Monitor cycle complete" />
+    
+  </Sequence>
+
+</Activity>

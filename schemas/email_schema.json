@@ -1,0 +1,132 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Email Classification and Response Schema",
+  "description": "Strict schema for email processing outputs",
+  
+  "definitions": {
+    "classification_output": {
+      "type": "object",
+      "properties": {
+        "intent": {
+          "type": "string",
+          "enum": ["support", "sales", "billing", "feedback", "complaint", "inquiry", "spam"],
+          "description": "Primary email intent category"
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Confidence score 0-1"
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 500,
+          "description": "Brief summary of email content"
+        },
+        "priority": {
+          "type": "string",
+          "enum": ["high", "medium", "low"],
+          "description": "Email priority level"
+        },
+        "requires_response": {
+          "type": "boolean",
+          "description": "Whether response is needed"
+        },
+        "action_items": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Identified action items from email"
+        }
+      },
+      "required": ["intent", "confidence", "summary", "priority", "requires_response"],
+      "additionalProperties": false
+    },
+    
+    "response_output": {
+      "type": "object",
+      "properties": {
+        "response_text": {
+          "type": "string",
+          "minLength": 50,
+          "maxLength": 5000,
+          "description": "Generated response email body"
+        },
+        "response_tone": {
+          "type": "string",
+          "enum": ["professional", "friendly", "formal", "casual"],
+          "description": "Tone of the response"
+        },
+        "length": {
+          "type": "integer",
+          "minimum": 50,
+          "maximum": 5000,
+          "description": "Character count of response"
+        },
+        "includes_action_items": {
+          "type": "boolean",
+          "description": "Whether response includes action items"
+        }
+      },
+      "required": ["response_text", "response_tone", "length"],
+      "additionalProperties": false
+    },
+    
+    "api_response": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["success", "error"],
+          "description": "Response status"
+        },
+        "message": {
+          "type": "string",
+          "description": "Status message"
+        },
+        "data": {
+          "type": "object",
+          "description": "Response payload"
+        },
+        "error": {
+          "type": "string",
+          "description": "Error details if status is error"
+        }
+      },
+      "required": ["status", "message"],
+      "additionalProperties": false
+    },
+    
+    "email_request": {
+      "type": "object",
+      "properties": {
+        "subject": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500,
+          "description": "Email subject line"
+        },
+        "body": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 50000,
+          "description": "Email body content"
+        },
+        "sender": {
+          "type": "string",
+          "format": "email",
+          "description": "Sender email address"
+        },
+        "received_date": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Email received timestamp"
+        }
+      },
+      "required": ["subject", "body", "sender"],
+      "additionalProperties": false
+    }
+  }
+}
